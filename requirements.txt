@@ -1,0 +1,14 @@
+streamlit>=1.40
+gspread>=6.1
+google-auth>=2.0
+tzdata>=2024.1
+google-generativeai>=0.3.2
+streamlit
+streamlit-javascript
+streamlit-js-eval
+python-dotenv
+requests
+gspread
+oauth2client
+pandas
+pytz
