@@ -365,14 +365,14 @@ def mostrar_formulario() -> None:
     consentimientos_obligatorios = [
     datos["Declaración de veracidad"],
     datos["Consentimiento de datos"],
-]
+        ]
 
     if not all(consentimientos_obligatorios):
         st.error(
         "Debe aceptar la declaración de veracidad y el consentimiento "
         "para el tratamiento de datos."
-    )
-    return
+        )
+        return
 
     proporciono_referencias = any(
     [
@@ -389,8 +389,8 @@ def mostrar_formulario() -> None:
         st.error(
         "Para utilizar las referencias proporcionadas, debe autorizar "
         "su verificación."
-    )
-    return
+        )
+        return
 
     datos["Número de solicitud"] = generar_numero_solicitud()
     datos["Fecha de envío"] = fecha_hora_costa_rica()
