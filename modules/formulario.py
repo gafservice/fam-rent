@@ -225,7 +225,7 @@ def _seccion_privacidad(datos: dict[str, Any]) -> None:
     st.info(
         "Los datos se utilizarán únicamente para evaluar esta solicitud, "
         "verificar referencias y contactar al oferente. Si no se formaliza "
-        "el alquiler, se eliminarán en un plazo máximo de 90 días, salvo "
+        "el alquiler, se eliminarán en un plazo máximo de 15 días, salvo "
         "obligación legal de conservación."
     )
 

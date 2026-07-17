@@ -31,31 +31,29 @@ def mostrar_informacion_inmueble() -> None:
         "Características y servicios del inmueble",
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Alquiler habitacional", CONFIG.alquiler_habitacional)
-    with col2:
-        st.metric("Depósito de garantía", CONFIG.deposito)
-
     st.subheader("Características y servicios")
-    st.markdown(
-        """
-        - 1 sala / comedor
-        - 1 cocina, sin electrodomésticos
-        - 3 dormitorios
-        - 1 baño con agua caliente
-        - 1 cuarto de pilas, sin lavadora
-        - 1 espacio de parqueo
-        - Electricidad y agua potable disponibles
-        - Internet y TV Kolbi disponibles
-        - Se permiten mascotas bajo tenencia responsable
-        """
-    )
+    st.markdown("""
+    ### Características 
 
-    st.info(
-        "El monto indicado corresponde al uso habitacional. "
-        "Las condiciones para uso comercial o mixto deben evaluarse y negociarse."
-    )
+    - 1 Sala / Comedor
+    - 1 Cocina
+    - 1 Cuarto de Pilas
+    - 3 Dormitorios
+    - 1 Baño
+    - 1 Espacio de parqueo
+
+    #### Servicios disponibles
+
+    - Electricidad *
+    - Agua potable *
+    - Internet  *
+
+    \\* Los servicios estan incluidos dentro del pago de la mensualidad, condiciones de uso y la responsabilidad por el pago de excedentes de estos servicios se establecerán en el contrato de arrendamiento.
+""")
+
+
+
+
 
     st.subheader("Ubicación")
     components.iframe(CONFIG.mapa_url, height=450, scrolling=False)
@@ -66,4 +64,19 @@ def mostrar_informacion_inmueble() -> None:
     st.warning(
         "Completar la solicitud no constituye aceptación, reserva ni promesa "
         "de arrendamiento."
+    )
+
+    st.divider()
+
+    st.subheader("💰 Condiciones de alquiler")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Alquiler habitacional", CONFIG.alquiler_habitacional)
+    with col2:
+        st.metric("Depósito de garantía", CONFIG.deposito)
+
+    st.info(
+        "El monto indicado corresponde al uso habitacional. "
+        "Las condiciones para uso comercial o mixto deben evaluarse y negociarse."
     )
