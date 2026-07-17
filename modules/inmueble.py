@@ -48,7 +48,7 @@ def mostrar_informacion_inmueble() -> None:
     - Agua potable *
     - Internet  *
 
-    \\* Los servicios estan incluidos dentro del pago de la mensualidad, condiciones de uso y la responsabilidad por el pago de excedentes de estos servicios se establecerán en el contrato de arrendamiento.
+    \\.No incluye electrodomésticos ni muebles.\\
 """)
 
 

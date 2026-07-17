@@ -4,9 +4,18 @@ import streamlit as st
 
 from modules.configuracion import CONFIG
 from modules.correo import enviar_correos
-from modules.google_sheets import guardar_solicitud
-from modules.utilidades import fecha_hora_costa_rica, generar_numero_solicitud
-from modules.validaciones import campos_obligatorios_faltantes, validar_correo
+from modules.supabase_db import guardar_solicitud
+from modules.utilidades import (
+    fecha_actual_costa_rica,
+    fecha_hora_costa_rica,
+    generar_numero_solicitud,
+)
+from modules.validaciones import (
+    campos_obligatorios_faltantes,
+    normalizar_telefono,
+    validar_correo,
+    validar_telefono,
+)
 
 
 CAMPOS_OBLIGATORIOS = [
@@ -18,6 +27,16 @@ CAMPOS_OBLIGATORIOS = [
     "Ingreso mensual aproximado",
     "Fecha prevista de ingreso",
 ]
+
+
+def _normalizar_identificacion_contacto(datos: dict[str, Any]) -> None:
+    datos["Nombre completo"] = " ".join(
+        datos["Nombre completo"].split()
+    )
+    datos["Identificación"] = datos["Identificación"].strip()
+    datos["Correo electrónico"] = (
+        datos["Correo electrónico"].strip().lower()
+    )
 
 
 def _seccion_identificacion(datos: dict[str, Any]) -> None:
@@ -55,11 +74,21 @@ def _seccion_economica(datos: dict[str, Any]) -> None:
     datos["Antigüedad laboral"] = st.text_input(
         "Tiempo de laborar o ejercer la actividad"
     )
-    datos["Ingreso mensual aproximado"] = st.text_input(
-        "Ingreso mensual aproximado (₡) *"
+    datos["Ingreso mensual aproximado"] = st.number_input(
+        "Ingreso mensual aproximado (₡) *",
+        min_value=0,
+        value=None,
+        step=10_000,
+        format="%d",
+        placeholder="Ejemplo: 500000",
     )
-    datos["Otros ingresos"] = st.text_input(
-        "Otros ingresos mensuales verificables"
+    datos["Otros ingresos"] = st.number_input(
+        "Otros ingresos mensuales verificables (₡)",
+        min_value=0,
+        value=None,
+        step=10_000,
+        format="%d",
+        placeholder="Opcional",
     )
     datos["Comprobante de ingresos"] = st.multiselect(
         "Documentos que podría presentar si es preseleccionado",
@@ -73,7 +102,10 @@ def _seccion_economica(datos: dict[str, Any]) -> None:
         ],
     )
     datos["Fecha prevista de ingreso"] = st.date_input(
-        "Fecha prevista para ingresar *"
+        "Fecha prevista para ingresar *",
+        value=None,
+        min_value=fecha_actual_costa_rica(),
+        format="DD/MM/YYYY",
     )
     datos["Plazo previsto de alquiler"] = st.selectbox(
         "¿Por cuánto tiempo espera alquilar?",
@@ -127,7 +159,7 @@ def _seccion_mascotas_vehiculos(datos: dict[str, Any]) -> None:
         )
     else:
         datos["Detalle de mascotas"] = ""
-        datos["Tenencia responsable"] = "No aplica"
+        datos["Tenencia responsable"] = False
 
     datos["Cantidad de vehículos"] = st.number_input(
         "Cantidad de vehículos",
@@ -135,7 +167,8 @@ def _seccion_mascotas_vehiculos(datos: dict[str, Any]) -> None:
         step=1,
     )
     datos["Necesita parqueo adicional"] = st.radio(
-        "¿Necesita más de un espacio de parqueo?",
+        "¿Necesita más de un espacio de parqueo? "
+        "(Seleccione No si tiene cero o un vehículo)",
         ["Sí", "No"],
         horizontal=True,
     )
@@ -164,9 +197,6 @@ def _seccion_historial(datos: dict[str, Any]) -> None:
     datos["Contacto propietario anterior"] = st.text_input(
         "Teléfono o correo del propietario anterior"
     )
-    datos["Autoriza contactar referencia"] = st.checkbox(
-        "Autorizo contactar al propietario o administrador anterior."
-    )
     datos["Referencia laboral"] = st.text_input(
         "Nombre de referencia laboral"
     )
@@ -182,42 +212,31 @@ def _seccion_historial(datos: dict[str, Any]) -> None:
 
 
 def _seccion_condiciones(datos: dict[str, Any]) -> None:
-    st.subheader("6. Condiciones de contratación")
+    st.subheader("6. Condiciones generales")
 
-    datos["Acepta monto de alquiler"] = st.checkbox(
-        f"Acepto el alquiler mensual indicado: {CONFIG.alquiler_habitacional}."
+    st.info(
+        f"Alquiler mensual: {CONFIG.alquiler_habitacional}. "
+        f"Depósito de garantía: {CONFIG.deposito}. "
+        "El primer mes se paga antes de ingresar. La mensualidad incluye "
+        "internet y un consumo base de agua y electricidad. Si se supera "
+        "la base establecida, se cobrará al inquilino el 80 % del monto "
+        "excedente. Las bases, el cálculo y las demás condiciones se "
+        "detallarán en el contrato."
     )
-    datos["Acepta depósito"] = st.checkbox(
-        f"Acepto entregar el depósito de garantía: {CONFIG.deposito}."
-    )
-    datos["Acepta primer mes adelantado"] = st.checkbox(
-        "Acepto pagar el primer mes antes de ingresar."
-    )
-    datos["Acepta contrato escrito"] = st.checkbox(
-        "Acepto formalizar un contrato escrito."
-    )
-    datos["Acepta normas de convivencia"] = st.checkbox(
-        "Acepto cumplir las normas de convivencia y cuidar el inmueble."
-    )
-    datos["Acepta prohibición de subarrendar"] = st.checkbox(
-        "Acepto no subarrendar ni ceder la vivienda sin autorización."
-    )
-    datos["Acepta uso autorizado"] = st.checkbox(
-        "Acepto utilizar el inmueble únicamente para el uso autorizado."
-    )
-    datos["Quién paga servicios"] = st.radio(
-        "Responsabilidad propuesta para el pago de servicios",
+
+    datos["Valoración de condiciones"] = st.radio(
+        "Después de revisar esta información:",
         [
-            "El inquilino",
-            "El propietario",
-            "A convenir en el contrato",
+            "Las condiciones me resultan viables",
+            "Necesito conversar algunas condiciones",
+            "Las condiciones no se ajustan a mi situación",
         ],
+        index=None,
     )
-    datos["Requiere condición especial"] = st.text_area(
-        "¿Requiere alguna condición o adecuación especial?"
-    )
-    datos["Observaciones"] = st.text_area("Observaciones adicionales")
 
+    datos["Condición por conversar"] = st.text_area(
+        "Condición u observación que desea conversar (opcional)"
+    )
 
 def _seccion_privacidad(datos: dict[str, Any]) -> None:
     st.subheader("7. Declaraciones y consentimiento")
@@ -280,6 +299,8 @@ def mostrar_formulario() -> None:
     if not enviado:
         return
 
+    _normalizar_identificacion_contacto(datos)
+
     faltantes = campos_obligatorios_faltantes(
         datos,
         CAMPOS_OBLIGATORIOS,
@@ -292,6 +313,26 @@ def mostrar_formulario() -> None:
         )
         return
 
+    if datos["Ingreso mensual aproximado"] <= 0:
+        st.error("El ingreso mensual aproximado debe ser mayor que cero.")
+        return
+
+    if datos["Mascotas"] == "Sí":
+        if not datos["Detalle de mascotas"].strip():
+            st.error(
+                "Describa el tipo, cantidad, tamaño y edad de las mascotas."
+            )
+            return
+        if not datos["Tenencia responsable"]:
+            st.error(
+                "Debe aceptar la responsabilidad por los daños que puedan "
+                "causar sus mascotas."
+            )
+            return
+
+    if datos["Cantidad de vehículos"] <= 1:
+        datos["Necesita parqueo adicional"] = "No"
+
     if datos["Mayor de edad"] != "Sí":
         st.error("La persona responsable del contrato debe ser mayor de edad.")
         return
@@ -300,37 +341,62 @@ def mostrar_formulario() -> None:
         st.error("Ingrese una dirección de correo electrónico válida.")
         return
 
-    consentimientos = [
-        datos["Declaración de veracidad"],
-        datos["Autorización de verificación"],
-        datos["Consentimiento de datos"],
-    ]
-    if not all(consentimientos):
-        st.error("Debe aceptar las tres declaraciones finales.")
+    if not validar_telefono(datos["Teléfono principal"]):
+        st.error(
+            "Ingrese un teléfono válido de Costa Rica con 8 dígitos. "
+            "Puede escribirlo como 8888-8888 o +506 8888-8888."
+        )
         return
 
-    condiciones = [
-        datos["Acepta monto de alquiler"],
-        datos["Acepta depósito"],
-        datos["Acepta primer mes adelantado"],
-        datos["Acepta contrato escrito"],
-        datos["Acepta normas de convivencia"],
-        datos["Acepta prohibición de subarrendar"],
-        datos["Acepta uso autorizado"],
+    datos["Teléfono principal"] = normalizar_telefono(
+        datos["Teléfono principal"]
+    )
+
+    if datos["Teléfono alternativo"]:
+        if not validar_telefono(datos["Teléfono alternativo"]):
+            st.error(
+                "El teléfono alternativo debe tener 8 dígitos o dejarse vacío."
+            )
+            return
+        datos["Teléfono alternativo"] = normalizar_telefono(
+            datos["Teléfono alternativo"]
+        )
+
+    consentimientos_obligatorios = [
+    datos["Declaración de veracidad"],
+    datos["Consentimiento de datos"],
+]
+
+    if not all(consentimientos_obligatorios):
+        st.error(
+        "Debe aceptar la declaración de veracidad y el consentimiento "
+        "para el tratamiento de datos."
+    )
+    return
+
+    proporciono_referencias = any(
+    [
+        datos["Propietario anterior"].strip(),
+        datos["Contacto propietario anterior"].strip(),
+        datos["Referencia laboral"].strip(),
+        datos["Teléfono referencia laboral"].strip(),
+        datos["Referencia personal"].strip(),
+        datos["Teléfono referencia personal"].strip(),
     ]
-    if not all(condiciones):
-        st.error("Debe aceptar todas las condiciones de contratación.")
-        return
+    )
+
+    if proporciono_referencias and not datos["Autorización de verificación"]:
+        st.error(
+        "Para utilizar las referencias proporcionadas, debe autorizar "
+        "su verificación."
+    )
+    return
 
     datos["Número de solicitud"] = generar_numero_solicitud()
     datos["Fecha de envío"] = fecha_hora_costa_rica()
 
     try:
-        guardar_solicitud(
-            datos,
-            CONFIG.hoja_calculo,
-            CONFIG.hoja_respuestas,
-        )
+        guardar_solicitud(datos)
     except Exception:
         st.error(
             "No fue posible guardar la solicitud. "

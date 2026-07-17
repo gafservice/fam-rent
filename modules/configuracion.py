@@ -9,10 +9,8 @@ class ConfiguracionInmueble:
     deposito: str = "₡380 000"
     contacto: str = "admin@vigias.net"
     telefono: str = "8715-5477"
-    hoja_calculo: str = "Respuestas_Alquiler"
-    hoja_respuestas: str = "Formulario_Completo"
     imagen_fachada: str = "assets/fachada1.jpg"
-    imagen_caracteristicas: str = "assets/Carac.jpg"
+    imagen_caracteristicas: str = "assets/Caract.png"
     video_url: str = "https://youtu.be/9U7l9rvnVJc"
     mapa_url: str = (
         "https://www.google.com/maps/embed?pb="

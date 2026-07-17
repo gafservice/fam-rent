@@ -65,9 +65,10 @@ Fecha de envío: {datos['Fecha de envío']}
 Completar el formulario no garantiza la aprobación ni reserva la propiedad.
 La administración se comunicará con las personas preseleccionadas.
 
+Muchas gracias por su interés.
+
 Atentamente,
-Administración de Propiedades
-VIGIAS
+Administración de Inmuieble
 """
     )
 
